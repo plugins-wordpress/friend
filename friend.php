@@ -64,6 +64,84 @@ register_deactivation_hook( __FILE__, 'deactivate_friend' );
  */
 require plugin_dir_path( __FILE__ ) . 'includes/class-friend.php';
 
+
+// Register the main plugin function,
+//  which will be called when the plugin is activated. 
+//  This function should register any custom post types,
+//   taxonomies, and other functionality that your plugin provides. Here's an example:
+function my_friend_plugin_init() {
+	// Register a custom post type for friends
+	register_post_type( 'friend', array(
+	  'labels' => array(
+		'name' => 'Friends',
+		'singular_name' => 'Friend'
+	  ),
+	  'public' => true,
+	  'has_archive' => true,
+	  'supports' => array( 'title', 'editor', 'thumbnail' )
+	) );
+  }
+  add_action( 'init', 'my_friend_plugin_init' );
+
+  
+/**
+ * Implement the plugin functionality. In the case of a "Friend WordPress Plugin",
+ *  this might involve creating a new "Add Friend" button on user profiles,
+ *  or a form for searching and adding friends. Here's an example of how to 
+ * create a shortcode that displays a list of a user's friends:
+ */
+  function my_friend_list_shortcode( $atts ) {
+	$user_id = get_current_user_id(); // Get the ID of the current user
+	$friends = get_posts( array(
+	  'post_type' => 'friend',
+	  'meta_query' => array(
+		array(
+		  'key' => 'friend_user_id',
+		  'value' => $user_id,
+		  'compare' => '='
+		)
+	  )
+	) );
+	ob_start(); // Start output buffering
+	if ( $friends ) :
+	?>
+	<ul>
+	  <?php foreach ( $friends as $friend ) : ?>
+		<li><?php echo $friend->post_title; ?></li>
+	  <?php endforeach; ?>
+	</ul>
+	<?php endif;
+	$output = ob_get_clean(); // End output buffering and return the output
+	return $output;
+  }
+  add_shortcode( 'my-friend-list', 'my_friend_list_shortcode' );
+  
+
+  /**
+   * Create a new function to handle the "Add as Friend" button. This function will be responsible for creating a new "friend" post and adding the current user's ID as a custom field. Here's an example:
+   */
+
+   function my_add_friend() {
+	if ( isset( $_GET['add_friend'] ) ) {
+	  $friend_name = get_the_title(); // Get the name of the current post
+	  $friend_id = wp_insert_post( array(
+		'post_type' => 'friend',
+		'post_title' => $friend_name,
+		'post_status' => 'publish'
+	  ) );
+	  add_post_meta( $friend_id, 'friend_user_id', get_current_user_id() ); // Add the current user's ID as a custom field
+	}
+  }
+  add_action( 'template_redirect', 'my_add_friend' );
+  
+
+  /**
+   * Modify the template for the single post view to include an "Add as Friend" button. This button will include a query string parameter (?add_friend=1) that will trigger the my_add_friend function when clicked. Here's an example:
+
+   */
+
+   
+  
 /**
  * Begins execution of the plugin.
  *
